@@ -1,0 +1,42 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "dn-transporter-dashboard-client-side-solution",
+    "id": "971f4410-5543-4766-919a-4afe0bbee1fe",
+    "version": "1.0.0.10",
+    "includeClientSideAssets": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": ""
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "dn-transporter-dashboard description"
+      },
+      "longDescription": {
+        "default": "dn-transporter-dashboard description"
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "dn-transporter-dashboard DnTransporterDashboardWebPart Feature",
+        "description": "The feature that activates DnTransporterDashboardWebPart from the dn-transporter-dashboard solution.",
+        "id": "73e4381b-77de-4cc9-a9c2-e9f47b15873e",
+        "version": "1.0.0.10",
+        "componentIds": [
+          "73e4381b-77de-4cc9-a9c2-e9f47b15873e"
+        ]
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/dn-transporter-dashboard.sppkg"
+  }
+}

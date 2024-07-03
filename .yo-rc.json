@@ -1,0 +1,17 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "isCreatingSolution": true,
+    "environment": "spo",
+    "version": "1.19.0",
+    "libraryName": "dn-transporter-dashboard",
+    "libraryId": "971f4410-5543-4766-919a-4afe0bbee1fe",
+    "packageManager": "npm",
+    "isDomainIsolated": false,
+    "componentType": "webpart",
+    "sdkVersions": {
+      "@microsoft/teams-js": "2.12.0",
+      "@microsoft/microsoft-graph-client": "3.0.2"
+    },
+     "nodeVersion": "18.20.3"
+  }
+}
