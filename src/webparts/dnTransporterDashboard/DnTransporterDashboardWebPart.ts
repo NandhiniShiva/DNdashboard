@@ -13,6 +13,9 @@ import { IDnTransporterDashboardProps } from './components/IDnTransporterDashboa
 
 export interface IDnTransporterDashboardWebPartProps {
   description: string;
+  Percentage: any;
+  Isdownloading: boolean;
+  Downloadstatus: string;
 }
 
 export default class DnTransporterDashboardWebPart extends BaseClientSideWebPart<IDnTransporterDashboardWebPartProps> {
@@ -24,6 +27,9 @@ export default class DnTransporterDashboardWebPart extends BaseClientSideWebPart
         description: this.properties.description,
         context: this.context,
         siteurl: this.context.pageContext.web.absoluteUrl,
+        Percentage: this.properties.Percentage,
+        Isdownloading: this.properties.Isdownloading,
+        Downloadstatus: this.properties.Downloadstatus,
       }
     );
 

@@ -3,7 +3,7 @@
   "solution": {
     "name": "dn-transporter-dashboard-client-side-solution",
     "id": "971f4410-5543-4766-919a-4afe0bbee1fe",
-    "version": "1.0.0.10",
+    "version": "1.0.0.11",
     "includeClientSideAssets": true,
     "isDomainIsolated": false,
     "developer": {

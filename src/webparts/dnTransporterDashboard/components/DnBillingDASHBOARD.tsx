@@ -71,30 +71,18 @@ var transporterList: any[] = [];
 var selectedTransporter = '';
 var AllData: any[] = [];
 const batch = sp.createBatch();
+var DownloadingStatus = "";
+
+// var DownloadingInprogress: boolean = false;
+
 // var pendingArray = [];
 // var deliverArray = [];
-SPComponentLoader.loadCss(`https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css`);
-SPComponentLoader.loadCss('https://balmerlawries.sharepoint.com/sites/Corporate/DNApp/SiteAssets/CSS/style.css?v=4.5');
-SPComponentLoader.loadCss('https://balmerlawries.sharepoint.com/sites/Corporate/DNApp/SiteAssets/CSS/printstyle.css?v=2.1');
-
-// SPComponentLoader.loadCss('https://tmxin.sharepoint.com/sites/POC/VPS/Site%20Asset/Remo%20Portal%20Assets/css/form%20css/style.css?v=4.0');
-// SPComponentLoader.loadCss(`https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css`);
-// SPComponentLoader.loadCss(`https://cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css`);
-SPComponentLoader.loadScript(`https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js`);
-// SPComponentLoader.loadScript(`https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js`);
-SPComponentLoader.loadScript("https://code.jquery.com/jquery-3.6.0.js");
-SPComponentLoader.loadScript("https://code.jquery.com/ui/1.13.1/jquery-ui.js");
-SPComponentLoader.loadScript(`https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js`);
-SPComponentLoader.loadCss(`https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css`);
-SPComponentLoader.loadScript('https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js');
-SPComponentLoader.loadScript('https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js');
-SPComponentLoader.loadScript('https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js');
-SPComponentLoader.loadScript('https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css');
-SPComponentLoader.loadScript('https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css');
-SPComponentLoader.loadCss('https://cdn.datatables.net/responsive/2.2.3/css/responsive.bootstrap.min.css');
-SPComponentLoader.loadCss('https://cdn.datatables.net/1.10.20/css/jquery.dataTables.min.css');
-SPComponentLoader.loadCss('https://cdn.datatables.net/buttons/1.6.0/css/buttons.dataTables.min.css');
-SPComponentLoader.loadScript('https://cdn.datatables.net/buttons/2.2.2/js/buttons.colVis.min.js');
+// SPComponentLoader.loadCss(`https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css`);
+// SPComponentLoader.loadScript(`https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js`);
+// SPComponentLoader.loadScript("https://code.jquery.com/jquery-3.6.0.js");
+// SPComponentLoader.loadScript("https://code.jquery.com/ui/1.13.1/jquery-ui.js");
+// SPComponentLoader.loadCss('https://balmerlawries.sharepoint.com/sites/DN-Transport/SiteAssets/CSS/style.css?v=4.7');
+// SPComponentLoader.loadCss('https://balmerlawries.sharepoint.com/sites/DN-Transport/SiteAssets/CSS/printstyle.css?v=2.1');
 
 
 
@@ -152,6 +140,7 @@ export interface IDnTransporterDashboardState {
     isclickedsumbit: boolean,
     // isYetToDeliverdDN: boolean,
     selectedReport: any;
+    reportClass: any;
     selectedTransporter: any;
     isClickedBilledItem: boolean,
     isClickedYetToBilledItem: boolean,
@@ -162,6 +151,10 @@ export interface IDnTransporterDashboardState {
     PDFYetToBilledItem: any[],
     PDFUnmatchedYetToBilledItem: any[],
     hiddenTruckTypeIndexes: number[];
+    DownloadingInprogress: boolean;
+    DownloadingStatus: string;
+
+
 
 
 
@@ -189,7 +182,7 @@ interface MyObject {
     CHRG: string;
     // Add other properties as needed
 }
-// let Newweb = Web("https://balmerlawries.sharepoint.com/sites/Corporate/DNApp/");
+// let Newweb = Web("https://balmerlawries.sharepoint.com/sites/DN-Transport/");
 
 let newweb = Web("https://balmerlawries.sharepoint.com/sites/DN-Transport/");
 var momentStartDate = '';
@@ -258,6 +251,7 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
             // isYetToDeliverdDN: false,
             isclickedsumbit: false,
             selectedReport: null,
+            reportClass: "",
             selectedTransporter: null,
             isClickedBilledItem: false,
             isClickedBilledConsolidated: false,
@@ -269,134 +263,133 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
             hiddenTruckTypeIndexes: [],
             startDateSelected: false, // Track if start date is chosen
             endDateSelected: false,
+            DownloadingInprogress: false,
+            DownloadingStatus: "",
+
+
         }
     }
 
-    public componentDidMount() {
+    componentDidMount() {
+        $("#Load_content").hide();
+        $("#loader_icon").show();
+        const { Downloadstatus, Isdownloading } = this.props;
+        // Check if downloading is in progress
+        if (Isdownloading) {
+            this.setState({ DownloadingInprogress: true });
+            $(".PDF_block").addClass("active");
+        }
+
+        // Check if downloading is completed
+        if (DownloadingStatus === "B-Completed" || Downloadstatus === "T-Completed") {
+            $(".PDF_block").removeClass("active");
+            this.setState({ DownloadingInprogress: false });
+        }
         $.fn.dataTable.ext.errMode = 'none';
         $(".popup_banner").hide();
-        $(".popup_div").hide()
-        newweb.currentUser.get().then((user) => {
-            CurrentLoggedinuserID = user.Id;
-            CurrentLoggedinuserName = user.Title;
-            CurrentLoggedinuserEmail = user.Email;
-            this.setState({ CurrentLoggedinuserNameState: CurrentLoggedinuserName });
-
-        })
-            .then(() => {
-                $(".delivereddn").addClass("active");
-                this.GetCurrentUserDetails();
-                this.Group_Details("defaut_loading");
+        $(".popup_div").hide();
+        newweb.currentUser.get()
+            .then(user => {
+                CurrentLoggedinuserID = user.Id;
+                CurrentLoggedinuserName = user.Title;
+                CurrentLoggedinuserEmail = user.Email;
+                this.setState({ CurrentLoggedinuserNameState: CurrentLoggedinuserName });
             })
+            .catch(error => {
+                console.error("Error fetching current user:", error);
+            })
+            .finally( async() => {
+                $(".delivereddn").addClass("active");
+                await this.Group_Details("default_loading");
+                this.hideLoader();
+            });
     }
 
-    public load_react_data_tables() {
-        document.title = "Simple DataTable";
-        // Create search inputs in footer
-        $("#DNTable tfoot th").each(function () {
-            var title = $(this).text();
-            $(this).html('<input type="text" placeholder="Search ' + title + '" />');
-        });
-        // DataTable initialisation
-        var table = $("#DNTable").DataTable({
-            dom: '<"dt-buttons"Bf><"clear">lirtp',
-            paging: true,
-            autoWidth: true,
 
-            initComplete: function (settings, json) {
-                var footer = $("#DNTable tfoot tr");
-                $("#DNTable thead").append(footer);
-            }
-        });
+    // public componentDidMount() {
+    //     // var Status = this.props.Downloadstatus;
+    //     // window.addEventListener('beforeunload', function (e) {
+    //     //     // Display a confirmation message
+    //     //     if (DownloadingStatus != "B-Completed" || Status != "T-Completed") {
+    //     //         const confirmationMessage = 'Download Inprogress, Are you sure you want to leave this page?';
+    //     //         console.log(e);
+    //     //         console.log(e.returnValue);
+    //     //         // Some browsers require you to return the confirmation message
+    //     //         e.returnValue = confirmationMessage;
+    //     //         // Return the confirmation message (not required by all browsers)
+    //     //         return confirmationMessage;
+    //     //     }
+    //     // });
 
-        // Apply the search
-        $("#DNTable thead").on("keyup", "input", function () {
-            // table.column($(this).parent().index()).search();
-            const inputValue: string = this.value;
-            const columnIndex: number = $(this).parent().index();
-            (table.column(columnIndex) as any).search(inputValue).draw();
-        });
+    //     if (this.props.Isdownloading == true) {
+    //         this.setState({ DownloadingInprogress: true });
+    //         $(".PDF_block").addClass("active")
+    //         // $(".Reports_download").show();
+    //         // $(".select_report_btn").hide();
+    //     }
+    //     if (DownloadingStatus == "B-Completed" || this.props.Downloadstatus == "T-Completed") {
+    //         $(".PDF_block").removeClass("active")
+    //         this.setState({ DownloadingInprogress: false });
+    //     }
+    //     // else {
+    //     //     $(".PDF_block").removeClass("active")
+    //     //     this.setState({ DownloadingStatus: "Completed", DownloadingInprogress: false });
+    //     // }
+    //     $.fn.dataTable.ext.errMode = 'none';
+    //     $(".popup_banner").hide();
+    //     $(".popup_div").hide()
+    //     newweb.currentUser.get().then((user) => {
+    //         CurrentLoggedinuserID = user.Id;
+    //         CurrentLoggedinuserName = user.Title;
+    //         CurrentLoggedinuserEmail = user.Email;
+    //         this.setState({ CurrentLoggedinuserNameState: CurrentLoggedinuserName });
+    //     })
+    //         .then(() => {
+    //             $(".delivereddn").addClass("active");
+    //             // this.GetCurrentUserDetails();
+    //             this.Group_Details("defaut_loading");
+    //         })
+    //         catch(){
 
-        $(".dt-buttons").hide();
-    }
-
-    // public async GetAllTransporterDetails() {
-    //     await newweb.lists.getByTitle("Delivery Note Transactions").items
-    //         .select(
-    //             "DeliveryNumber",
-    //             "TripNumber",
-    //             "Created",
-    //             "CustomerName",
-    //             "FromAddress",
-    //             "ToAddress",
-    //             "Trucktype",
-    //             "Trucknumber",
-    //             "DriverName",
-    //             "DeliveryStatus",
-    //             "Modified",
-    //             "DriverMobileNumber",
-    //             "CompanyName",
-    //             "Customercontactnumber",
-    //             "TransporterName",
-    //             "DNEIDURL",
-    //             "RevisedTripNuber",
-    //             "ActualCreatedDateTime",
-    //             "ActualModifiedDateTime",
-    //             "ActualCreatedDatewithTime",
-    //             "ID")
-    //         // .filter(`ActualCreatedDateTime ge '${this.state.SelectedStartDate}' and ActualCreatedDateTime le '${this.state.SelectedEndDate}'`)
-    //         // .filter(`ActualCreatedDatewithTime ge '${this.state.startDate}' and ActualCreatedDatewithTime le '${this.state.endDate}T23:59:59'`)
-    //         // .top(20000)
-    //         .getAll()
-    //         .then(async (response) => {
-    //             if (response.length != 0) {
-    //                 AllData = response;
-    //             }
     //         }
-    //         )
+    //          finally {
+    //             this.hideLoader();
+    //         }
     // }
-    public async  GetAllTransporterDetails(newweb: IWeb) {
-        try {
-            const headers = new Headers();
-            headers.append("Accept", "application/json;odata=nometadata");
-    
-            const options:any = {
-                headers: headers,
-            };
-    
-            const response = await newweb.lists.getByTitle("Delivery Note Transactions").items
-                .select(
-                    "DeliveryNumber",
-                    "TripNumber",
-                    "Created",
-                    "CustomerName",
-                    "FromAddress",
-                    "ToAddress",
-                    "Trucktype",
-                    "Trucknumber",
-                    "DriverName",
-                    "DeliveryStatus",
-                    "Modified",
-                    "DriverMobileNumber",
-                    "CompanyName",
-                    "Customercontactnumber",
-                    "TransporterName",
-                    "DNEIDURL",
-                    "RevisedTripNuber",
-                    "ActualCreatedDateTime",
-                    "ActualModifiedDateTime",
-                    "ActualCreatedDatewithTime",
-                    "ID")
-                .getAll(options);
-    
-            if (response.length != 0) {
-                const AllData = response;
-                console.log("Data fetched successfully:", AllData);
-            }
-        } catch (error) {
-            console.error("Error fetching data:", error.message, error.stack);
+
+    public async GetAllTransporterDetails() {
+        const headers = new Headers({
+            "Accept": "application/json;odata=verbose",
+            "Accept-Language": "en-US"
+        });
+        // Initialize an empty array to hold all the results
+        let allItems: any[] = [];
+        let items = null;
+        // Get the first batch of items
+        items = await newweb.lists.getByTitle("Delivery Note Transactions").items
+            .select("TransporterName", "ID")
+            .top(5000)
+            .configure({ headers: headers })
+            .getPaged();
+        // Concatenate the results of the first batch
+        allItems = allItems.concat(items.results);
+        // Continue fetching next batches while there are more items
+        while (items.hasNext) {
+            items = await items.getNext();
+            allItems = allItems.concat(items.results);
+        }
+        // Assign all fetched data to AllData
+        if (allItems.length != 0) {
+            AllData = allItems;
         }
     }
+    public hideLoader() {
+        setTimeout(() => {
+        $("#loader_icon").hide();
+        $("#Load_content").show();
+        }, 1000);
+    }
+
     public async getItems(modetype: string, Loading_Type: any) {
         try {
             let filter = '';
@@ -409,21 +402,22 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                 this.setState({
                     IsCurrentUserIsAdmin: isAdmin,
                 });
+                // alert(this.props.description);
                 if (selectedTransporter === '') {
-                    await this.GetAllTransporterDetails(newweb);
-                    const transporterNameList = AllData.map(item => ({
-                        id: item.ID,
-                        name: item.TransporterName
-                    }));
-                    // Removing duplicates based on 'name' property
-                    const uniqueTransporterList = transporterNameList
-                        .filter(transporter => transporter.name !== null)
-                        .filter((transporter, index, self) =>
-                            index === self.findIndex(t => t.name === transporter.name)
-                        );
-                    transporterList = uniqueTransporterList;
-                    console.log(transporterList[0]);
-                    Items1 = transporterList[0].name;
+                    // await this.GetAllTransporterDetails();
+                    const result = await newweb.lists.getByTitle("DN Transporter Details Master").items
+                        .select("Title", "Email")
+                        // .filter(`Email eq '${CurrentLoggedinuserEmail}'`)
+                        .get();
+                    // console.log(result);
+                    const titles = result.map(item => item.Title);
+                    // Use a Set to get unique titles
+                    const uniqueTitles = [...new Set(titles)];
+                    // Log the unique titles
+                    // console.log(uniqueTitles);
+                    transporterList = uniqueTitles;
+                    // Items1 = transporterList[0];
+                    Items1 = this.props.description;
                     Transporter_Selected = Items1;
                     selectedTransporter = Items1;
                 }
@@ -462,10 +456,10 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
             const [allItems] = await Promise.all([allItemsPromise]);
             if (allItems.length !== 0) {
                 const nullRevisedTripItems: any[] = [];
-                const revisedTripItems:any = {};
+                const revisedTripItems: any = {};
                 MasterArray = allItems;
                 // Separate items with null and non-null revised trip numbers
-                MasterArray.forEach((item:any) => {
+                MasterArray.forEach((item: any) => {
                     if (item.RevisedTripNuber === null) {
                         nullRevisedTripItems.push(item);
                     } else {
@@ -492,9 +486,9 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                 this.setState({
                     Items: finalItems,
                     selectedTransporter: Items1,
-                }, () => {
-                    this.getTotalCount("DNTransporterPresent");
-                    this.getPDFDetailsDeliver();
+                }, async () => {
+                    await this.getTotalCount("DNTransporterPresent");
+                    await this.getPDFDetailsDeliver();
                 });
                 if (finalItems.length == 0) {
                     this.setState({
@@ -516,6 +510,7 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                     TotalPending: 0,
                     PDFDeliveredItem: [],
                     PDFUnmatchedItemDeliver: [],
+                    selectedTransporter: Items1,
                 });
                 this.showErrorMessage('No DN Available');
             }
@@ -523,6 +518,7 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
         } catch (error) {
             console.error("Error fetching data:", error);
         }
+
     }
 
     public async getTotalCount(modetype: string) {
@@ -613,8 +609,8 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
         const { startDateSelected, endDateSelected, startDate, endDate } = this.state;
         if (startDateSelected) {
             const diffInDays = moment(endDate).diff(moment(startDate), 'days');
-            if (diffInDays > 15) {
-                this.showErrorMessage("Please select a date range within 15 days.");
+            if (diffInDays > 30) {
+                this.showErrorMessage("Please select a date range within 30 days.");
                 return;
             }
             this.Group_Details("Selection_of_dates");
@@ -628,13 +624,14 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
     }
 
     public showErrorMessage(message: string) {
+        debugger;
         Swal.fire({
-            iconHtml: '<img src="https://balmerlawries.sharepoint.com/sites/DN-Transport/SiteAssets/Images/delete_img%202.svg" class="error-img-class">',
+            iconHtml: '<img src="https://balmerlawries.sharepoint.com/sites/DN-Transport/SiteAssets/Images/deleted_img.svg" class="error-img-class">',
             title: message,
             icon: 'error',
             allowOutsideClick: false,
             showConfirmButton: true,
-            timer: 3000,
+            // timer: 3000,
             customClass: {
                 title: 'upload_error_title',
                 popup: 'swal_delete',
@@ -647,8 +644,7 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
     public async Group_Details(Mode: string) {
         try {
             // Show loading indicator
-            $("#Load_content").hide();
-            $("#loader_icon").show();
+
             // Destroy the DataTable asynchronously
             // await new Promise(resolve => setTimeout(resolve, 0)); // Allow other tasks to continue
             // var table = $("#DNTable").DataTable();
@@ -676,8 +672,8 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                 }
             }
             // Hide loading indicator
-            $("#loader_icon").hide();
-            $("#Load_content").show();
+            // $("#loader_icon").hide();
+            // $("#Load_content").show();
         } catch (error) {
             console.error("Error in Group_Details:", error);
         }
@@ -730,9 +726,9 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
         }));
     }
 
-    public getPDFDetailsDeliver() {
+    public async getPDFDetailsDeliver() {
         const tableList = this.state.Items;
-        newweb.lists.getByTitle("Transporter Charges Master").items
+        await newweb.lists.getByTitle("Transporter Charges Master").items
             .select("Title", "FROM_LOC", "TO_LOC", "CHRG")
             // .filter("IsActive eq '1'")
             .getAll()
@@ -789,7 +785,7 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                         count: seen1.get(key)
                     };
                 });
-                var maxTripValue:any = {};
+                var maxTripValue: any = {};
                 // Iterate through the array and update the maxCounts object
                 addTripCountColumn.forEach(item => {
                     const key = `${item.TruckNumber}-${item.FromAddress}-${item.ToAddress}`;
@@ -841,8 +837,8 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                 const UniqueMatchedArrayGroupedByTruckType = matchedObjectsDeliver.reduce((result, item) => {
                     // const existingGroup = result.find((group) => group[0].TruckNumber === item.TruckNumber);
                     const existingGroup = result.find((group: {
-                        TruckNumber: any; FromAddress: any; 
-}[]) => group[0].TruckNumber === item.TruckNumber && group[0].FromAddress == item.FromAddress);
+                        TruckNumber: any; FromAddress: any;
+                    }[]) => group[0].TruckNumber === item.TruckNumber && group[0].FromAddress == item.FromAddress);
 
                     if (existingGroup) {
                         existingGroup.push(item);
@@ -864,8 +860,8 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
 
                 const UniqueUnmatchedArrayGroupedByTruckType = unmatchedObjects.reduce((result, item) => {
                     const existingGroup = result.find((group: {
-                        TruckNumber: any; FromAddress: any; 
-}[]) => group[0].TruckNumber === item.TruckNumber && group[0].FromAddress == item.FromAddress);
+                        TruckNumber: any; FromAddress: any;
+                    }[]) => group[0].TruckNumber === item.TruckNumber && group[0].FromAddress == item.FromAddress);
 
                     if (existingGroup) {
                         existingGroup.push(item);
@@ -955,7 +951,7 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                         count: seen1.get(key)
                     };
                 });
-                var maxTripValue:any = {};
+                var maxTripValue: any = {};
                 // Iterate through the array and update the maxCounts object
                 addTripCountColumn.forEach(item => {
                     const key = `${item.TruckNumber}-${item.FromAddress}-${item.ToAddress}`;
@@ -1010,8 +1006,8 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                 const UniqueMatchedArrayGroupedByTruckType = matchedObjectsDeliver.reduce((result, item) => {
                     // const existingGroup = result.find((group) => group[0].TruckNumber === item.TruckNumber);
                     const existingGroup = result.find((group: {
-                        TruckNumber: any; FromAddress: any; 
-}[]) => group[0].TruckNumber === item.TruckNumber && group[0].FromAddress == item.FromAddress);
+                        TruckNumber: any; FromAddress: any;
+                    }[]) => group[0].TruckNumber === item.TruckNumber && group[0].FromAddress == item.FromAddress);
 
                     if (existingGroup) {
                         existingGroup.push(item);
@@ -1037,8 +1033,8 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                 const UniqueUnmatchedArrayGroupedByTruckType = unmatchedObjects.reduce((result, item) => {
                     // const existingGroup = result.find((group) => group[0].TruckNumber === item.TruckNumber);
                     const existingGroup = result.find((group: {
-                        TruckNumber: any; FromAddress: any; 
-}[]) => group[0].TruckNumber === item.TruckNumber && group[0].FromAddress == item.FromAddress);
+                        TruckNumber: any; FromAddress: any;
+                    }[]) => group[0].TruckNumber === item.TruckNumber && group[0].FromAddress == item.FromAddress);
 
                     if (existingGroup) {
                         existingGroup.push(item);
@@ -1135,7 +1131,7 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                         count: seen1.get(key)
                     };
                 });
-                var maxTripValue:any = {};
+                var maxTripValue: any = {};
                 // Iterate through the array and update the maxCounts object
                 addTripCountColumn.forEach(item => {
                     const key = `${item.TruckNumber}-${item.FromAddress}-${item.ToAddress}`;
@@ -1190,8 +1186,8 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                 const UniqueMatchedArrayGroupedByTruckType = matchedObjectsDeliver.reduce((result, item) => {
                     // const existingGroup = result.find((group) => group[0].TruckNumber === item.TruckNumber);
                     const existingGroup = result.find((group: {
-                        TruckNumber: any; FromAddress: any; 
-}[]) => group[0].TruckNumber === item.TruckNumber && group[0].FromAddress == item.FromAddress);
+                        TruckNumber: any; FromAddress: any;
+                    }[]) => group[0].TruckNumber === item.TruckNumber && group[0].FromAddress == item.FromAddress);
 
                     if (existingGroup) {
                         existingGroup.push(item);
@@ -1217,8 +1213,8 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                 const UniqueUnmatchedArrayGroupedByTruckType = unmatchedObjects.reduce((result, item) => {
                     // const existingGroup = result.find((group) => group[0].TruckNumber === item.TruckNumber);
                     const existingGroup = result.find((group: {
-                        TruckNumber: any; FromAddress: any; 
-}[]) => group[0].TruckNumber === item.TruckNumber && group[0].FromAddress == item.FromAddress);
+                        TruckNumber: any; FromAddress: any;
+                    }[]) => group[0].TruckNumber === item.TruckNumber && group[0].FromAddress == item.FromAddress);
 
                     if (existingGroup) {
                         existingGroup.push(item);
@@ -1266,6 +1262,7 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
         var mathcedItems = this.state.PDFBilledItem.length;
         var unmathcedItems = this.state.PDFUnmatchedBilledItem.length;
         if (mathcedItems != 0 || unmathcedItems != 0) {
+            $(".PDF_block").addClass("active");
             $("#pdf-margin").show();
             $(".deliverPdf-details").show();
             $(".pdf_banner").hide();
@@ -1305,6 +1302,8 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                     // link.download = `Summary-Report- ${moment(this.state.SelectedStartDate, "MM/DD/YYYY").format("DD-MM-YYYY")}.pdf`
                     link.download = `Summary-Billed-${moment().format('DD-MM-YYYY')}.pdf`;
                     this.Successalert('PDF Downloaded successfully!');
+                    this.setState({ DownloadingInprogress: false })
+                    // DownloadingInprogress = false;
                     // Append the link to the document
                     document.body.appendChild(link);
                     // Trigger a click on the link to start the download
@@ -1317,7 +1316,9 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
             $(".deliverPdf-details").hide();
             $(".pdf_banner").show();
         } else {
+            $(".PDF_block").removeClass("active");
             this.showErrorMessage('No Billed DN Available for Download');
+            this.setState({ DownloadingInprogress: false })
         }
     };
 
@@ -1332,6 +1333,7 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
         var mathcedItems = this.state.PDFYetToBilledItem.length;
         var unmathcedItems = this.state.PDFUnmatchedYetToBilledItem.length;
         if (mathcedItems != 0 || unmathcedItems != 0) {
+            $(".PDF_block").addClass("active");
             this.pleasewaitalert();
             $("#pdf-margin").show();
             $(".yettobillPdf-details").show();
@@ -1367,6 +1369,8 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                     link.href = URL.createObjectURL(file);
                     link.download = `Summary-YetToBilled-${moment().format('DD-MM-YYYY')}.pdf`;
                     this.Successalert('PDF Downloaded successfully!');
+                    this.setState({ DownloadingInprogress: false })
+                    // DownloadingInprogress = false;
                     // Append the link to the document
                     document.body.appendChild(link);
                     // Trigger a click on the link to start the download
@@ -1379,7 +1383,9 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
             $(".yettobillPdf-details").hide();
             $(".pdf_banner").show();
         } else {
+            $(".PDF_block").removeClass("active");
             this.showErrorMessage('No Yet To Bill DN Available for Download')
+            this.setState({ DownloadingInprogress: false })
         }
     };
 
@@ -1408,7 +1414,7 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                             .inBatch(batch)
                             .update({
                                 BillingStatus: 'Billed',
-                            }).then((e:any) => {
+                            }).then((e: any) => {
                                 this.Group_Details(e);
                                 this.Successalert('Billed Successfully');
                                 Swal.fire({
@@ -1455,25 +1461,52 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
         const selectedReport = event.target.value;
         const selectedOptionText = event.target.options[event.target.selectedIndex].text.trim(); // Get the text content of the selected option and trim any leading or trailing whitespace
         const optionTextLength = selectedOptionText.length;
-        if (selectedReport == "") {
-            $("#reportDropdown").css("width", "130px"); // Set width to 100px if option text length is less than 10 characters
-            $("#reportDropdown").get(0).style.setProperty("background-position-x", "110px", "important");
-        } else {
-            if (optionTextLength <= 26) { // Example condition, adjust as needed
-                $("#reportDropdown").css("width", "200px"); // Set width to 100px if option text length is less than 10 characters
-                $("#reportDropdown").get(0).style.setProperty("background-position-x", "180px", "important");
-            } else {
-                $("#reportDropdown").css("width", "230px"); // Set width to 500px otherwise
-                $("#reportDropdown").get(0).style.setProperty("background-position-x", "210px", "important");
-            }
+        let reportClass = '';
+        this.setState({ DownloadingStatus: "Inprogress-B" });
+        // DownloadingStatus = "Inprogress-B"
+        // Set class based on the selected option
+        switch (selectedReport) {
+            case 'billed':
+                reportClass = 'SBR';
+                break;
+            case 'yettobilled':
+                reportClass = 'SYBR';
+                break;
+            case 'billedconsolidated':
+                reportClass = 'CR_B';
+                break;
+            case 'yettobilledconsolidated':
+                reportClass = 'CR_YB';
+                break;
+            default:
+                reportClass = '';
+                break;
         }
 
-        this.setState({ selectedReport }, () => {
+        // if (selectedReport == "") {
+        //     $("#reportDropdown").css("width", "130px"); // Set width to 100px if option text length is less than 10 characters
+        //     $("#reportDropdown").get(0).style.setProperty("background-position-x", "110px", "important");
+        // } else {
+        //     if (optionTextLength <= 26) { // Example condition, adjust as needed
+        //         $("#reportDropdown").css("width", "200px"); // Set width to 100px if option text length is less than 10 characters
+        //         $("#reportDropdown").get(0).style.setProperty("background-position-x", "180px", "important");
+        //     } else {
+        //         $("#reportDropdown").css("width", "230px"); // Set width to 500px otherwise
+        //         $("#reportDropdown").get(0).style.setProperty("background-position-x", "210px", "important");
+        //     }
+        // }
+
+        this.setState({ selectedReport, reportClass }, () => {
             this.SelectReport(event);
         })
     };
 
     SelectReport = (e: any) => {
+        // DownloadingInprogress = true;
+        this.setState({ DownloadingInprogress: true })
+        // $(".Reports_download").show();
+        // $(".select_report_btn").hide();
+        // $(".PDF_block").addClass("active");
         // You can call the specific function based on the selected report
         if (this.state.selectedReport === 'billed') {
             // this.getBilledPDF();
@@ -1522,11 +1555,12 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                         },
                     });
                     const arrayBuffer = await response.arrayBuffer();
-                    const data = new Uint8Array(arrayBuffer);
-                    const fileName = file.FileLeafRef; // Assuming FileLeafRef contains the file name
-                    const CreationDate: string = moment(file.Created, "YYYY-MM-DDTH:mm:sZ").format("MM/DD/YYYY HH:mm");
-
-                    reportFiles.push({ data, fileName, CreationDate });
+                    if (arrayBuffer.byteLength !== 0) {
+                        const data = new Uint8Array(arrayBuffer);
+                        const fileName = file.FileLeafRef; // Assuming FileLeafRef contains the file name
+                        const CreationDate: string = moment(file.Created, "YYYY-MM-DDTH:mm:sZ").format("MM/DD/YYYY HH:mm");
+                        reportFiles.push({ data, fileName, CreationDate });
+                    }
                 }
             }
             return reportFiles;
@@ -1634,23 +1668,19 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                 title: 'downloading_title', // Class for title
                 content: 'my-html-container', // Class for HTML content
             },
-            imageUrl: 'https://balmerlawries.sharepoint.com/sites/DN-Transport/SiteAssets/Images/Eclipse.gif',
+            imageUrl: 'https://balmerlawries.sharepoint.com/sites/DN-Transport/SiteAssets/Images/Spin-1s-100px%20(8).gif',
             // onBeforeOpen: () => {
             //   Swal.showLoading();
             // }
         });
-        // Swal.fire({
-        //     title: 'Downloading',
-        //     html: 'The PDF file is being downloaded. Please wait...',// add html attribute if you want or remove
-        //     allowOutsideClick: false,
-        //     onBeforeOpen: () => {
-        //         Swal.showLoading()
-        //     },
-        // });
+        setTimeout(() => {
+            Swal.close(); // Close the SweetAlert popup after 2-3 seconds for downloading
+        }, 2000);  // Set to 2000 for 2 seconds, 3000 for 3 seconds
+
     }
     public Successalert(message: string) {
         Swal.fire({
-            iconHtml: '<img src="https://balmerlawries.sharepoint.com/sites/DN-Transport/SiteAssets/Images/successfully_img%201.svg" class="my-img-class">',
+            iconHtml: '<img src="https://balmerlawries.sharepoint.com/sites/DN-Transport/SiteAssets/Images/successfully_img.svg" class="my-img-class">',
             title: 'Success',
             text: message,
             icon: 'success',
@@ -1662,12 +1692,21 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                 content: 'upload_success_content', // Class for text
                 confirmButton: 'My_btn' // Class for the confirm button
             }
-        });
+        }).then(() => {
+            if (message == "PDF Downloaded successfully!") {
+                // $(".Reports_download").hide();
+                // $(".select_report_btn").show();
+                DownloadingStatus = "B-Completed"
+                $(".PDF_block").removeClass("active");
+                this.setState({ DownloadingInprogress: false });
+            }
+        })
     }
 
     public async downloadConsolidatedPDF() {
         const stampedItems: any[] = this.state.isClickedBilledConsolidated ? this.state.BilledItems : this.state.YetToBilledItems; // Assuming this.state.StampedItem contains the stamped items with delivery numbers
         if (stampedItems.length != 0) {
+            $(".PDF_block").addClass("active");
             this.pleasewaitalert();
             const pdfFiles = await this.fetchPDFFiles();
             if (pdfFiles.length != 0) {
@@ -1681,6 +1720,8 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                     a.href = url;
                     a.download = this.state.isClickedBilledConsolidated ? `ConsolidatedBilledPDF-Report-${moment().format('DD-MM-YYYY')}.pdf` : `ConsolidatedYetToBillPDF-Report-${moment().format('DD-MM-YYYY')}.pdf`;
                     this.Successalert('PDF Downloaded successfully!');
+                    this.setState({ DownloadingInprogress: false })
+                    // DownloadingInprogress = false;
                     document.body.appendChild(a);
                     a.click();
                     window.URL.revokeObjectURL(url);
@@ -1688,12 +1729,17 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                 } catch (error) {
                     console.error('Error downloading PDF:', error);
                     this.showErrorMessage('No valid PDF Found.');
+                    this.setState({ DownloadingInprogress: false })
                 }
             } else {
-                this.showErrorMessage('No DN Available for Download')
+                $(".PDF_block").removeClass("active");
+                this.showErrorMessage('No DN Available for Download');
+                this.setState({ DownloadingInprogress: false })
             }
         } else {
+            $(".PDF_block").removeClass("active");
             this.showErrorMessage('No DN Available for Download');
+            this.setState({ DownloadingInprogress: false })
         }
     }
 
@@ -1713,7 +1759,7 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
             if (value !== this.state.selectedTransporter) {
                 const newStartDate = moment().subtract(6, 'days').format('YYYY-MM-DD');
                 const newEndDate = moment().format('YYYY-MM-DD');
-                const newState:any = {
+                const newState: any = {
                     selectedTransporter: value,
                     startDate: newStartDate,
                     endDate: newEndDate,
@@ -1741,7 +1787,7 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
             }
         } else {
             if (this.state.selectedTransporter !== '') {
-                const newState:any = {
+                const newState: any = {
                     deliverArrayItem: [],
                     pendingArrayItem: [],
                     PDFDeliveredItem: [],
@@ -3826,15 +3872,15 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                             <div className="container">
                                 <div className="header_first_section ">
                                     <div className="logo">
-                                        <a href=""><img src="https://balmerlawries.sharepoint.com/sites/Corporate/Artwork/SiteAssets/ArtWorkFolderCreation/img/logo_img.svg" alt="img" /></a>
+                                        <a href=""><img src="https://balmerlawries.sharepoint.com/sites/DN-Transport/SiteAssets/Images/Dn-logo.jpg" alt="img" /></a>
                                     </div>
                                     <div className="notification-part">
                                         <ul className="header-ul">
                                             {/* <li> <a href="" className="relative"> <img className="notification_img" src="https://tmxin.sharepoint.com/sites/POC/ClientPOC/SupplierPortal/SiteAssets/Supplier%20Portal%20Assets/img/notification.svg" alt="img" /> <span className="noto-count"> 1 </span> </a> </li> */}
-                                            <li className="image"> <img className="user_img" src={`https://balmerlawries.sharepoint.com/sites/Corporate/Artwork/_layouts/15/userphoto.aspx?&username=${this.state.CurrentUserEmail}`} alt="img" /> </li>
+                                            <li className="image"> <img className="user_img" src={`https://balmerlawries.sharepoint.com/sites/DN-Transport/_layouts/15/userphoto.aspx?&username=${this.state.CurrentUserEmail}`} alt="img" /> </li>
                                             {/* <li className="person-details"> <img className="user_img" src="https://tmxin.sharepoint.com/sites/POC/ClientPOC/SupplierPortal/SiteAssets/Supplier%20Portal%20Assets/img/user.png" alt="img" /> */}
                                             <li> {this.state.CurrentLoggedinuserNameState}  </li>
-                                            <li className="dropdown-li" title="Open Menu" > <img onClick={this.signOut} src="https://balmerlawries.sharepoint.com/sites/Corporate/Artwork/SiteAssets/ArtWorkFolderCreation/img/next.png" className="next_img" alt="img" />
+                                            <li className="dropdown-li" title="Open Menu" > <img onClick={this.signOut} src="https://balmerlawries.sharepoint.com/sites/DN-Transport/SiteAssets/Images/next.png" className="next_img" alt="img" />
                                             </li>
                                             <li className="SignOut-li">
                                                 <a href="https://login.microsoftonline.com/common/oauth2/logout">Sign Out</a>
@@ -3867,9 +3913,14 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                                                             value={selectedTransporter || ''}
                                                             onChange={(e) => this.setSelectedTransporter(e.target.value)}>
                                                             <option value="">Select Transporter</option>
-                                                            {transporterList.map((transporter) => (
+                                                            {/* {transporterList.map((transporter) => (
                                                                 <option key={transporter.id} value={transporter.name}>
                                                                     {transporter.name}
+                                                                </option>
+                                                            ))} */}
+                                                            {transporterList.map((transporter) => (
+                                                                <option value={transporter}>
+                                                                    {transporter}
                                                                 </option>
                                                             ))}
                                                         </select>
@@ -3890,7 +3941,7 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                                                 <div className="col-md-4">
                                                     <div className="three-blocks">
                                                         <div className="three-blocks-img">
-                                                            <img src="https://balmerlawries.sharepoint.com/sites/Corporate/DNApp/SiteAssets/Images/total.svg" alt="image" data-themekey="#" /></div>
+                                                            <img src="https://balmerlawries.sharepoint.com/sites/DN-Transport/SiteAssets/Images/total.svg" alt="image" data-themekey="#" /></div>
                                                         <div className="three-blocks-desc">
                                                             <h3> {this.state.TotalEntries} </h3>
                                                             <p> Total </p>
@@ -3900,7 +3951,7 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                                                 <div className="col-md-4">
                                                     <div className="three-blocks">
                                                         <div className="three-blocks-img">
-                                                            <img src="https://balmerlawries.sharepoint.com/sites/Corporate/DNApp/SiteAssets/Images/Approved.svg" alt="image" data-themekey="#" /></div>
+                                                            <img src="https://balmerlawries.sharepoint.com/sites/DN-Transport/SiteAssets/Images/Approved.svg" alt="image" data-themekey="#" /></div>
                                                         <div className="three-blocks-desc">
                                                             <h3> {this.state.TotalBilled} </h3>
                                                             <p> Total Billed </p>
@@ -3910,7 +3961,7 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                                                 <div className="col-md-4">
                                                     <div className="three-blocks">
                                                         <div className="three-blocks-img">
-                                                            <img src="https://balmerlawries.sharepoint.com/sites/Corporate/DNApp/SiteAssets/Images/pending.svg" alt="image" data-themekey="#" /></div>
+                                                            <img src="https://balmerlawries.sharepoint.com/sites/DN-Transport/SiteAssets/Images/pending.svg" alt="image" data-themekey="#" /></div>
                                                         <div className="three-blocks-desc">
                                                             <h3> {this.state.TotalPending} </h3>
                                                             <p> Total Yet to be Billed </p>
@@ -3954,9 +4005,12 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                                                 <li className={`apply_dates ${!this.state.startDateSelected ? 'btn_disable' : ''}`}>
                                                     <button onClick={(e) => this.Submitdates(e)}>Apply</button>
                                                 </li>
-                                                <li>
-                                                    <div className='select_report_btn'>
-                                                        <select id="reportDropdown" onChange={(e) =>this.handleReportSelection(e)} value={selectedReport || ''}>
+                                                <li className='PDF_block'>
+                                                    <div className="Reports_download" >
+                                                        <img src="https://balmerlawries.sharepoint.com/sites/DN-Transport/SiteAssets/Images/download.svg" data-themekey="#" /> <span> Downloading... </span>
+                                                    </div>
+                                                    <div className={`select_report_btn ${this.state.reportClass}`}>
+                                                        <select id="reportDropdown" onChange={(e) => this.handleReportSelection(e)} value={selectedReport || ''}>
                                                             <option value="">PDF Reports</option>
                                                             <option value="billed" onClick={this.deliveredBilledPDF}>  Summary Billed Report </option>
                                                             <option value="yettobilled" onClick={this.deliveredyettobilledPDF}>  Summary Yet to Bill Report </option>
@@ -3965,6 +4019,26 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                                                         </select>
                                                     </div>
                                                 </li>
+                                                {/* <li>
+                                                    {(this.state.DownloadingInprogress || this.state.DownloadingStatus === "Inprogress-B") ? (
+                                                        // {(this.state.DownloadingInprogress && this.state.DownloadingInprogress == true) || this.props.Downloadstatus == "Inprogress" || DownloadingStatus == "Inprogress-B" ?
+                                                        <div className="Reports_download">
+                                                            <img src="https://balmerlawries.sharepoint.com/sites/DN-Transport/SiteAssets/Images/download.svg" data-themekey="#" /> <span> Downoading... </span>
+                                                        </div>
+                                                    ) :
+                                                        <div className={`select_report_btn ${this.state.reportClass}`}
+                                                        // className='select_report_btn'
+                                                        >
+                                                            <select id="reportDropdown" onChange={(e) => this.handleReportSelection(e)} value={selectedReport || ''}>
+                                                                <option value="">PDF Reports</option>
+                                                                <option value="billed" onClick={this.deliveredBilledPDF}>  Summary Billed Report </option>
+                                                                <option value="yettobilled" onClick={this.deliveredyettobilledPDF}>  Summary Yet to Bill Report </option>
+                                                                <option value="billedconsolidated" onClick={this.downloadConsolidatedPDF}> Consolidated Report - Billed </option>
+                                                                <option value="yettobilledconsolidated" onClick={this.downloadConsolidatedPDF}>Consolidated Report - Yet to Bill </option>
+                                                            </select>
+                                                        </div>
+                                                    }
+                                                </li> */}
                                                 {this.state.isDeliverdDN == true &&
                                                     <li className="comfirm_bill_btn">
                                                         <button onClick={(e) => this.ConfirmBilling(e)}> Confirm Billing </button>
@@ -4037,7 +4111,7 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                                 <div className="container">
                                     <div className="header_first_section ">
                                         <div className="logo">
-                                            <a href=""> <img src="https://balmerlawries.sharepoint.com/sites/Corporate/DNApp/SiteAssets/Images/logo_img.svg" alt="img" /></a>
+                                            <a href=""> <img src="https://balmerlawries.sharepoint.com/sites/DN-Transport/SiteAssets/Images/logo_img.svg" alt="img" /></a>
                                         </div>
                                         <div className="notification-part">
                                             <p className="date"> Date : <span>  {handler.state.CurrentDateTime_deliver} </span> </p>
@@ -4082,7 +4156,7 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
                                 <div className="container">
                                     <div className="header_first_section ">
                                         <div className="logo">
-                                            <a href=""> <img src="https://balmerlawries.sharepoint.com/sites/Corporate/DNApp/SiteAssets/Images/logo_img.svg" alt="img" /></a>
+                                            <a href=""> <img src="https://balmerlawries.sharepoint.com/sites/DN-Transport/SiteAssets/Images/logo_img.svg" alt="img" /></a>
                                         </div>
                                         <div className="notification-part">
                                             <p className="date"> Date : <span>  {handler.state.CurrentDateTime_deliver} </span> </p>
@@ -4127,14 +4201,14 @@ export default class DnBillingDashboard extends React.Component<IDnTransporterDa
 
                         <section style={{ display: "none" }} id='loader_icon'>
                             <div>
-                                <img src='https://balmerlawries.sharepoint.com/sites/Corporate/DNApp/SiteAssets/Images/Spin-1s-100px%20(8).gif' alt='Loading...'></img>
+                                <img src='https://balmerlawries.sharepoint.com/sites/DN-Transport/SiteAssets/Images/Spin-1s-100px%20(8).gif' alt='Loading...'></img>
                             </div>
                         </section>
                     </div >
                 }
                 {
                     this.state.isTransporterDashboard == true &&
-                    <DnTransporterDashboard description={''} siteurl={this.props.siteurl} context={this.props.context}></DnTransporterDashboard>
+                    <DnTransporterDashboard description={''} siteurl={this.props.siteurl} context={this.props.context} Percentage={''} Isdownloading={this.state.DownloadingInprogress} Downloadstatus={DownloadingStatus}></DnTransporterDashboard>
                 }
             </>
         );
